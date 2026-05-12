@@ -1,38 +1,30 @@
-/**
- * Track — one drum track (row) in the sequencer.
- *
- * Usage:
- *   const t = new Track({ index: 0, name: 'KICK' });
- *   document.getElementById('tracks-container').appendChild(t.el);
- *   t.scheduleStep(stepIndex, time);  // called by Sequencer.onStep
- *
- * Serialization:
- *   t.toJSON()   / t.fromJSON(data)
- */
+const SLOT_LABELS = ['A','B','C','D','E','F','G','H'];
 
 class Track {
   constructor({ index, name = `T${index + 1}` }) {
     this.index      = index;
     this.name       = name;
     this.steps      = Array(16).fill(false);
-    this.stepMode   = 16;      // 8 or 16
+    this.stepMode   = 16;
     this.sampleUrl  = null;
     this.buffer     = null;
     this.expression = '';
     this.exprError  = false;
 
-    // Knob state
     this.vol    = 80;
-    this.pitch  = 50;   // 0→0.5x  50→1x  100→2x
-    this.pan    = 50;   // 0→-1  50→0  100→+1
-    this.filter = 100;  // 0→200Hz  100→20kHz
-    this.send   = 0;    // reverb send %
+    this.pitch  = 50;
+    this.pan    = 50;
+    this.filter = 100;
+    this.send   = 0;
+
+    // 8 slot memories per track (store step patterns)
+    this.slotData    = Array(8).fill(null);
+    this.activeSlot  = null;
 
     this.el = this._render();
     this._bindEvents();
     this._initKnobs();
 
-    // Re-evaluate expression when a $var changes
     this._offVarChange = Expressions.onVarChange(() => this._applyExpression());
   }
 
@@ -42,47 +34,57 @@ class Track {
     el.className = 'track';
     el.dataset.index = this.index;
     el.innerHTML = `
-      <div class="track-header">
+      <!-- Row 1: name · expr · drop -->
+      <div class="track-top">
         <span class="track-name">${this.name}</span>
-        <div class="sample-drop" data-role="drop">DROP SAMPLE</div>
-        <div class="track-expr-wrap">
-          <input class="track-expr" data-role="expr" placeholder="euclidean(5,16)" spellcheck="false" />
-        </div>
+        <input class="track-expr" data-role="expr" placeholder="euclidean(5,16)" spellcheck="false" />
+        <label class="sample-drop drop-btn" data-role="drop">
+          <span class="drop-label">LOAD</span>
+          <input type="file" accept=".wav,.mp3,.ogg" style="display:none" data-role="file-input">
+        </label>
+      </div>
+
+      <!-- Row 2: slots A–H · step toggle -->
+      <div class="track-slots">
+        ${SLOT_LABELS.map((l, i) => `<button class="slot-btn" data-slot="${i}">${l}</button>`).join('')}
+        <span class="slot-sep"></span>
         <div class="steps-toggle">
           <button class="steps-btn ${this.stepMode===8?'active':''}" data-steps="8">8</button>
           <button class="steps-btn ${this.stepMode===16?'active':''}" data-steps="16">16</button>
         </div>
       </div>
 
+      <!-- Row 3: step grid -->
       <div class="track-grid" data-role="grid">
         ${this._renderGrid()}
       </div>
 
+      <!-- Row 4: knobs -->
       <div class="track-knobs">
         <div class="knob-wrap">
-          <canvas class="knob" data-name="VOL_${this.index}"   data-min="0"  data-max="100" data-value="80"  tabindex="0"></canvas>
+          <canvas class="knob" data-name="VOL_${this.index}"   data-min="0" data-max="100" data-value="80"  tabindex="0"></canvas>
           <span class="knob-label">VOL</span>
           <span class="knob-val" data-for="VOL_${this.index}">80</span>
         </div>
         <div class="knob-wrap">
-          <canvas class="knob" data-name="PITCH_${this.index}" data-min="0"  data-max="100" data-value="50"  tabindex="0"></canvas>
-          <span class="knob-label">PITCH</span>
-          <span class="knob-val" data-for="PITCH_${this.index}">50</span>
+          <canvas class="knob" data-name="PCH_${this.index}"   data-min="0" data-max="100" data-value="50"  tabindex="0"></canvas>
+          <span class="knob-label">PCH</span>
+          <span class="knob-val" data-for="PCH_${this.index}">50</span>
         </div>
         <div class="knob-wrap">
-          <canvas class="knob" data-name="PAN_${this.index}"   data-min="0"  data-max="100" data-value="50"  tabindex="0"></canvas>
+          <canvas class="knob" data-name="PAN_${this.index}"   data-min="0" data-max="100" data-value="50"  tabindex="0"></canvas>
           <span class="knob-label">PAN</span>
           <span class="knob-val" data-for="PAN_${this.index}">50</span>
         </div>
         <div class="knob-wrap">
-          <canvas class="knob" data-name="FILT_${this.index}"  data-min="0"  data-max="100" data-value="100" tabindex="0"></canvas>
-          <span class="knob-label">FILT</span>
-          <span class="knob-val" data-for="FILT_${this.index}">100</span>
+          <canvas class="knob" data-name="FLT_${this.index}"   data-min="0" data-max="100" data-value="100" tabindex="0"></canvas>
+          <span class="knob-label">FLT</span>
+          <span class="knob-val" data-for="FLT_${this.index}">100</span>
         </div>
         <div class="knob-wrap">
-          <canvas class="knob" data-name="SEND_${this.index}"  data-min="0"  data-max="100" data-value="0"   tabindex="0"></canvas>
-          <span class="knob-label">SEND</span>
-          <span class="knob-val" data-for="SEND_${this.index}">0</span>
+          <canvas class="knob" data-name="SND_${this.index}"   data-min="0" data-max="100" data-value="0"   tabindex="0"></canvas>
+          <span class="knob-label">SND</span>
+          <span class="knob-val" data-for="SND_${this.index}">0</span>
         </div>
       </div>
     `;
@@ -90,15 +92,13 @@ class Track {
   }
 
   _renderGrid() {
-    const n = this.stepMode;
-    const cls = n === 16 ? 's16' : '';
-    let html = `<div class="step-row ${cls}">`;
+    const n   = this.stepMode;
+    const cls = n === 16 ? 's16' : 's8';
+    let html  = `<div class="step-row ${cls}">`;
     for (let i = 0; i < n; i++) {
-      const active = this.steps[i] ? 'active' : '';
-      html += `<div class="step ${active}" data-step="${i}"></div>`;
+      html += `<div class="step${this.steps[i] ? ' active' : ''}" data-step="${i}"></div>`;
     }
-    html += '</div>';
-    return html;
+    return html + '</div>';
   }
 
   _refreshGrid() {
@@ -111,10 +111,7 @@ class Track {
   _bindEvents() {
     // Steps toggle
     this.el.querySelectorAll('.steps-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const n = parseInt(btn.dataset.steps);
-        this._setStepMode(n);
-      });
+      btn.addEventListener('click', () => this._setStepMode(parseInt(btn.dataset.steps)));
     });
 
     // Expression input
@@ -124,16 +121,10 @@ class Track {
       this._applyExpression();
     });
 
-    // Drag & drop samples
-    const drop = this.el.querySelector('[data-role="drop"]');
-    drop.addEventListener('click', () => {
-      const inp = document.createElement('input');
-      inp.type = 'file';
-      inp.accept = 'audio/*';
-      inp.onchange = e => {
-        if (e.target.files[0]) this._loadFile(e.target.files[0]);
-      };
-      inp.click();
+    // File input inside the label
+    const fileInput = this.el.querySelector('[data-role="file-input"]');
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) this._loadFile(e.target.files[0]);
     });
 
     this.el.addEventListener('dragover', e => {
@@ -145,7 +136,24 @@ class Track {
       e.preventDefault();
       this.el.classList.remove('drag-over');
       const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('audio/')) this._loadFile(file);
+      if (file?.type.startsWith('audio/')) this._loadFile(file);
+    });
+
+    // Slot buttons: left-click = store if empty / recall if filled
+    //               right-click = always store
+    this.el.querySelectorAll('.slot-btn').forEach(btn => {
+      const si = parseInt(btn.dataset.slot);
+      btn.addEventListener('click', () => {
+        if (this.slotData[si] === null) {
+          this._slotStore(si);
+        } else {
+          this._slotRecall(si);
+        }
+      });
+      btn.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        this._slotStore(si);
+      });
     });
 
     this._bindGridDrag();
@@ -153,7 +161,7 @@ class Track {
 
   _bindGridDrag() {
     const grid = this.el.querySelector('[data-role="grid"]');
-    let painting = null; // true = activate, false = deactivate
+    let painting = null;
 
     const getStep = el => el.dataset.step !== undefined ? el : null;
 
@@ -169,11 +177,34 @@ class Track {
     grid.addEventListener('mouseover', e => {
       if (painting === null) return;
       const stepEl = getStep(e.target);
-      if (!stepEl) return;
-      this._setStep(parseInt(stepEl.dataset.step), painting);
+      if (stepEl) this._setStep(parseInt(stepEl.dataset.step), painting);
     });
 
     document.addEventListener('mouseup', () => { painting = null; });
+  }
+
+  // ── Slot memories ──────────────────────────────────────────────────────────
+  _slotStore(si) {
+    this.slotData[si] = this.steps.slice(0, this.stepMode);
+    this.activeSlot   = si;
+    this._refreshSlots();
+  }
+
+  _slotRecall(si) {
+    const data = this.slotData[si];
+    if (!data) return;
+    data.forEach((v, i) => this._setStep(i, v));
+    // clear steps beyond stored length
+    for (let i = data.length; i < this.stepMode; i++) this._setStep(i, false);
+    this.activeSlot = si;
+    this._refreshSlots();
+  }
+
+  _refreshSlots() {
+    this.el.querySelectorAll('.slot-btn').forEach((btn, i) => {
+      btn.classList.toggle('filled',  this.slotData[i] !== null && i !== this.activeSlot);
+      btn.classList.toggle('active',  i === this.activeSlot);
+    });
   }
 
   // ── Step logic ─────────────────────────────────────────────────────────────
@@ -185,9 +216,7 @@ class Track {
 
   _setStepMode(n) {
     this.stepMode = n;
-    if (this.steps.length < n) {
-      while (this.steps.length < n) this.steps.push(false);
-    }
+    while (this.steps.length < n) this.steps.push(false);
     this.el.querySelectorAll('.steps-btn').forEach(b =>
       b.classList.toggle('active', parseInt(b.dataset.steps) === n)
     );
@@ -198,7 +227,7 @@ class Track {
   _applyExpression() {
     if (!this.expression.trim()) { this.exprError = false; return; }
     const result = Expressions.evaluate(this.expression, this.stepMode);
-    const input = this.el.querySelector('[data-role="expr"]');
+    const input  = this.el.querySelector('[data-role="expr"]');
     if (result === null) {
       this.exprError = true;
       input.classList.add('error');
@@ -217,7 +246,7 @@ class Track {
       this.sampleUrl = url;
       this.buffer    = buffer;
       const drop = this.el.querySelector('[data-role="drop"]');
-      drop.textContent = file.name;
+      drop.querySelector('.drop-label').textContent = file.name;
       drop.classList.add('loaded');
     } catch (e) {
       console.error('Sample load failed:', e);
@@ -228,9 +257,9 @@ class Track {
     try {
       Audio.init();
       this.sampleUrl = url;
-      this.buffer = await Audio.loadSample(url);
+      this.buffer    = await Audio.loadSample(url);
       const drop = this.el.querySelector('[data-role="drop"]');
-      drop.textContent = url.split('/').pop();
+      drop.querySelector('.drop-label').textContent = url.split('/').pop();
       drop.classList.add('loaded');
     } catch (e) {
       console.error('Sample load failed:', e);
@@ -242,11 +271,11 @@ class Track {
     Knob.initKnobs(this.el);
     this.el.addEventListener('knob:change', e => {
       const { name, value } = e.detail;
-      if (name === `VOL_${this.index}`)   this.vol    = value;
-      if (name === `PITCH_${this.index}`) this.pitch  = value;
-      if (name === `PAN_${this.index}`)   this.pan    = value;
-      if (name === `FILT_${this.index}`)  this.filter = value;
-      if (name === `SEND_${this.index}`)  this.send   = value;
+      if (name === `VOL_${this.index}`)  this.vol    = value;
+      if (name === `PCH_${this.index}`)  this.pitch  = value;
+      if (name === `PAN_${this.index}`)  this.pan    = value;
+      if (name === `FLT_${this.index}`)  this.filter = value;
+      if (name === `SND_${this.index}`)  this.send   = value;
     });
   }
 
@@ -258,9 +287,9 @@ class Track {
 
     Audio.playStep(this.buffer, time, {
       vol:        this.vol / 100,
-      pitch:      Math.pow(2, (this.pitch - 50) / 50),  // 0.5x – 2x
-      pan:        (this.pan - 50) / 50,                 // -1 to +1
-      filterFreq: 200 + (this.filter / 100) * 19800,    // 200–20000 Hz
+      pitch:      Math.pow(2, (this.pitch - 50) / 50),
+      pan:        (this.pan - 50) / 50,
+      filterFreq: 200 + (this.filter / 100) * 19800,
       sendReverb: this.send / 100,
       sendDelay:  0,
     });
@@ -287,6 +316,7 @@ class Track {
       pan:        this.pan,
       filter:     this.filter,
       send:       this.send,
+      slotData:   this.slotData,
     };
   }
 
@@ -304,13 +334,17 @@ class Track {
       this._applyExpression();
     }
     if (data.sampleUrl) this.loadFromUrl(data.sampleUrl);
+    if (Array.isArray(data.slotData)) {
+      this.slotData = data.slotData;
+      this._refreshSlots();
+    }
 
-    const setK = (suffix, val) => Knob.setKnobValue(`${suffix}_${this.index}`, val);
-    if (data.vol   !== undefined) { this.vol    = data.vol;   setK('VOL',   data.vol); }
-    if (data.pitch !== undefined) { this.pitch  = data.pitch; setK('PITCH', data.pitch); }
-    if (data.pan   !== undefined) { this.pan    = data.pan;   setK('PAN',   data.pan); }
-    if (data.filter!== undefined) { this.filter = data.filter;setK('FILT',  data.filter); }
-    if (data.send  !== undefined) { this.send   = data.send;  setK('SEND',  data.send); }
+    const setK = (prefix, val) => Knob.setKnobValue(`${prefix}_${this.index}`, val);
+    if (data.vol    !== undefined) { this.vol    = data.vol;    setK('VOL', data.vol);   }
+    if (data.pitch  !== undefined) { this.pitch  = data.pitch;  setK('PCH', data.pitch); }
+    if (data.pan    !== undefined) { this.pan    = data.pan;    setK('PAN', data.pan);   }
+    if (data.filter !== undefined) { this.filter = data.filter; setK('FLT', data.filter);}
+    if (data.send   !== undefined) { this.send   = data.send;   setK('SND', data.send);  }
   }
 
   destroy() {

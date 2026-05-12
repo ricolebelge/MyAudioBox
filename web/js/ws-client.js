@@ -12,8 +12,10 @@ const WSClient = (() => {
   const WS_URL = `ws://${location.hostname}:8001`;
   let ws = null;
   let retryTimer = null;
+  const isFileProtocol = location.protocol === 'file:';
 
   function connect() {
+    if (isFileProtocol) return; // no server in file:// mode
     try {
       ws = new WebSocket(WS_URL);
 

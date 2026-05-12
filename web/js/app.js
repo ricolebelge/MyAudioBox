@@ -1,28 +1,27 @@
-/**
- * App — entry point. Initializes all modules and wires UI together.
- */
-
 const App = (() => {
   const TRACK_NAMES = ['KICK', 'SNARE', 'HI-HAT', 'OPEN-HH', 'CLAP', 'TOM', 'PERC', 'FX'];
-  const NUM_TRACKS  = 8;
 
-  let tracks = [];
+  let tracksA = [];   // Set A — indices 0–7  (sequencer live)
+  let tracksB = [];   // Set B — indices 8–15 (crossfader target)
   let selectedPattern = null;
 
   // ── Bootstrap ──────────────────────────────────────────────────────────────
   function init() {
-    // Build tracks
-    const container = document.getElementById('tracks-container');
-    for (let i = 0; i < NUM_TRACKS; i++) {
-      const t = new Track({ index: i, name: TRACK_NAMES[i] });
-      tracks.push(t);
-      container.appendChild(t.el);
-    }
+    const contA = document.getElementById('tracks-a');
+    const contB = document.getElementById('tracks-b');
+
+    TRACK_NAMES.forEach((name, i) => {
+      const ta = new Track({ index: i,     name });
+      const tb = new Track({ index: i + 8, name });
+      tracksA.push(ta);
+      tracksB.push(tb);
+      contA.appendChild(ta.el);
+      contB.appendChild(tb.el);
+    });
 
     // Global knobs
     Knob.initKnobs(document.getElementById('global-knobs'));
 
-    // Wire global knob events
     document.addEventListener('knob:change', e => {
       const { name, value } = e.detail;
       switch (name) {
@@ -34,12 +33,11 @@ const App = (() => {
       }
     });
 
-    // Wire sequencer → tracks
+    // Sequencer → tracks A (B is blended via ABSystem)
     Sequencer.onStep((stepIndex, time) => {
-      tracks.forEach((t, ti) => {
+      tracksA.forEach((t, ti) => {
         const blended = ABSystem.resolveStep(ti, stepIndex);
         if (blended !== null) {
-          // Override live steps with A/B blend result
           const prev = t.steps[stepIndex % t.stepMode];
           t.steps[stepIndex % t.stepMode] = blended;
           t.scheduleStep(stepIndex, time);
@@ -50,38 +48,40 @@ const App = (() => {
       });
     });
 
-    // Compute max stepMode for global step count
+    // Max step count across all tracks
     function updateStepCount() {
-      const max = tracks.reduce((m, t) => Math.max(m, t.stepMode), 16);
+      const max = [...tracksA, ...tracksB].reduce((m, t) => Math.max(m, t.stepMode), 16);
       Sequencer.setStepCount(max);
     }
-    // Re-check whenever a track's step mode changes (listen on container)
-    container.addEventListener('click', e => {
-      if (e.target.matches('.steps-btn')) updateStepCount();
-    });
+    contA.addEventListener('click', e => { if (e.target.matches('.steps-btn')) updateStepCount(); });
+    contB.addEventListener('click', e => { if (e.target.matches('.steps-btn')) updateStepCount(); });
 
     // Transport
     document.getElementById('btn-play').addEventListener('click', togglePlay);
     document.getElementById('btn-reset').addEventListener('click', () => {
       Sequencer.reset();
-      document.getElementById('btn-play').textContent = '▶';
-      document.getElementById('btn-play').classList.remove('playing');
+      const btn = document.getElementById('btn-play');
+      btn.textContent = '▶';
+      btn.classList.remove('playing');
     });
 
     // A/B system
-    ABSystem.init(() => tracks);
+    ABSystem.init(() => tracksA, () => tracksB);
+
     document.getElementById('btn-a').addEventListener('click', () => {
       ABSystem.setCrossfader(0);
       document.getElementById('crossfader').value = 0;
-      ABSystem.loadFromSet('A');
     });
     document.getElementById('btn-b').addEventListener('click', () => {
       ABSystem.setCrossfader(100);
       document.getElementById('crossfader').value = 100;
-      ABSystem.loadFromSet('B');
     });
-    document.getElementById('btn-copy-ab').addEventListener('click', () => ABSystem.copyToSet('A'));
-    document.getElementById('btn-copy-ba').addEventListener('click', () => ABSystem.copyToSet('B'));
+    document.getElementById('btn-copy-ab').addEventListener('click', () => {
+      ABSystem.copyAtoB();
+    });
+    document.getElementById('btn-copy-ba').addEventListener('click', () => {
+      ABSystem.copyBtoA();
+    });
     document.getElementById('crossfader').addEventListener('input', e => {
       ABSystem.setCrossfader(parseInt(e.target.value));
     });
@@ -94,10 +94,7 @@ const App = (() => {
     });
     document.getElementById('btn-delete').addEventListener('click', deletePattern);
 
-    // WebSocket hot-reload
     WSClient.start();
-
-    // Load pattern list
     refreshPatterns();
   }
 
@@ -115,56 +112,79 @@ const App = (() => {
     }
   }
 
+  // ── Pattern storage (HTTP or localStorage fallback) ────────────────────────
+  const LS_KEY = 'angelsaudiobox_patterns';
+
+  function lsGetAll() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
+  }
+  function lsSave(name, data)  { const all = lsGetAll(); all[name] = data; localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+  function lsDelete(name)      { const all = lsGetAll(); delete all[name]; localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+
   // ── Patterns ───────────────────────────────────────────────────────────────
   async function refreshPatterns() {
+    let names = [];
     try {
       const res = await fetch('/api/patterns');
-      const names = await res.json();
-      const list = document.getElementById('patterns-list');
-      list.innerHTML = '';
-      names.forEach(name => {
-        const chip = document.createElement('button');
-        chip.className = 'pattern-chip' + (name === selectedPattern ? ' selected' : '');
-        chip.textContent = name;
-        chip.addEventListener('click', () => {
-          selectedPattern = name;
-          document.getElementById('pattern-name').value = name;
-          list.querySelectorAll('.pattern-chip').forEach(c => c.classList.remove('selected'));
-          chip.classList.add('selected');
-        });
-        chip.addEventListener('dblclick', () => loadPattern(name));
-        list.appendChild(chip);
+      if (res.ok) names = await res.json(); else throw 0;
+    } catch {
+      names = Object.keys(lsGetAll());
+    }
+    const list = document.getElementById('patterns-list');
+    list.innerHTML = '';
+    names.forEach(name => {
+      const chip = document.createElement('button');
+      chip.className = 'pattern-chip' + (name === selectedPattern ? ' selected' : '');
+      chip.textContent = name;
+      chip.addEventListener('click', () => {
+        selectedPattern = name;
+        document.getElementById('pattern-name').value = name;
+        list.querySelectorAll('.pattern-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
       });
-    } catch {}
+      chip.addEventListener('dblclick', () => loadPattern(name));
+      list.appendChild(chip);
+    });
   }
 
   function buildStateJSON() {
     return {
-      bpm:    Knob.getKnobValue('BPM')    ?? 120,
-      swing:  Knob.getKnobValue('SWING')  ?? 0,
-      reverb: Knob.getKnobValue('REVERB') ?? 0,
-      delay:  Knob.getKnobValue('DELAY')  ?? 0,
-      master: Knob.getKnobValue('MASTER') ?? 80,
-      tracks: tracks.map(t => t.toJSON()),
+      bpm:     Knob.getKnobValue('BPM')    ?? 120,
+      swing:   Knob.getKnobValue('SWING')  ?? 0,
+      reverb:  Knob.getKnobValue('REVERB') ?? 0,
+      delay:   Knob.getKnobValue('DELAY')  ?? 0,
+      master:  Knob.getKnobValue('MASTER') ?? 80,
+      tracksA: tracksA.map(t => t.toJSON()),
+      tracksB: tracksB.map(t => t.toJSON()),
     };
   }
 
   async function savePattern() {
     const name = document.getElementById('pattern-name').value.trim();
     if (!name) return alert('Enter a pattern name');
-    await fetch(`/api/patterns/${encodeURIComponent(name)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildStateJSON()),
-    });
+    const payload = buildStateJSON();
+    let saved = false;
+    try {
+      const res = await fetch(`/api/patterns/${encodeURIComponent(name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) saved = true;
+    } catch {}
+    if (!saved) lsSave(name, payload);
     selectedPattern = name;
     await refreshPatterns();
   }
 
   async function loadPattern(name) {
-    const res = await fetch(`/api/patterns/${encodeURIComponent(name)}`);
-    if (!res.ok) return;
-    const data = await res.json();
+    let data = null;
+    try {
+      const res = await fetch(`/api/patterns/${encodeURIComponent(name)}`);
+      if (res.ok) data = await res.json();
+    } catch {}
+    if (!data) data = lsGetAll()[name];
+    if (!data) return;
 
     if (data.bpm)    Knob.setKnobValue('BPM',    data.bpm);
     if (data.swing)  Knob.setKnobValue('SWING',  data.swing);
@@ -172,11 +192,12 @@ const App = (() => {
     if (data.delay)  Knob.setKnobValue('DELAY',  data.delay);
     if (data.master) Knob.setKnobValue('MASTER', data.master);
 
-    if (Array.isArray(data.tracks)) {
-      data.tracks.forEach((tdata, i) => {
-        if (tracks[i]) tracks[i].fromJSON(tdata);
-      });
-    }
+    // Support old format (single 'tracks' key) and new (tracksA / tracksB)
+    const ta = data.tracksA || data.tracks || [];
+    const tb = data.tracksB || [];
+    ta.forEach((d, i) => { if (tracksA[i]) tracksA[i].fromJSON(d); });
+    tb.forEach((d, i) => { if (tracksB[i]) tracksB[i].fromJSON(d); });
+
     selectedPattern = name;
     document.getElementById('pattern-name').value = name;
     await refreshPatterns();
@@ -185,13 +206,18 @@ const App = (() => {
   async function deletePattern() {
     const name = selectedPattern || document.getElementById('pattern-name').value.trim();
     if (!name || !confirm(`Supprimer "${name}" ?`)) return;
-    await fetch(`/api/patterns/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    let deleted = false;
+    try {
+      const res = await fetch(`/api/patterns/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      if (res.ok) deleted = true;
+    } catch {}
+    if (!deleted) lsDelete(name);
     selectedPattern = null;
     document.getElementById('pattern-name').value = '';
     await refreshPatterns();
   }
 
-  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  // ── Keyboard ───────────────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, textarea')) return;
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
@@ -200,5 +226,4 @@ const App = (() => {
   return { init, refreshPatterns };
 })();
 
-// Start when DOM is ready
 document.addEventListener('DOMContentLoaded', App.init);
