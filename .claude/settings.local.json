@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ricol\\\\beatnblock\\\\AngelsAudioBox\" -File -Recurse | Where-Object { $_.FullName -notmatch 'venv' } | Select-Object FullName)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(New-Item *)"
+    ]
+  }
+}

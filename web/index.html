@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AngelsAudioBox — Beat'N'Block</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ HEADER -->
+<header class="header">
+  <div class="brand">
+    <span class="brand-logo">▶</span>
+    <span class="brand-name">ANGELS<span class="brand-accent">AUDIO</span>BOX</span>
+    <span class="brand-sub">Beat'N'Block · Binance Angel</span>
+  </div>
+
+  <div class="global-controls">
+    <!-- Global knobs -->
+    <div class="knob-group" id="global-knobs">
+      <div class="knob-wrap">
+        <canvas class="knob" data-name="BPM" data-min="40" data-max="240" data-value="120" data-step="1" tabindex="0"></canvas>
+        <span class="knob-label">BPM</span>
+        <span class="knob-val" data-for="BPM">120</span>
+      </div>
+      <div class="knob-wrap">
+        <canvas class="knob" data-name="SWING" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
+        <span class="knob-label">SWING</span>
+        <span class="knob-val" data-for="SWING">0</span>
+      </div>
+      <div class="knob-wrap">
+        <canvas class="knob" data-name="REVERB" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
+        <span class="knob-label">REVERB</span>
+        <span class="knob-val" data-for="REVERB">0</span>
+      </div>
+      <div class="knob-wrap">
+        <canvas class="knob" data-name="DELAY" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
+        <span class="knob-label">DELAY</span>
+        <span class="knob-val" data-for="DELAY">0</span>
+      </div>
+      <div class="knob-wrap">
+        <canvas class="knob" data-name="MASTER" data-min="0" data-max="100" data-value="80" tabindex="0"></canvas>
+        <span class="knob-label">MASTER</span>
+        <span class="knob-val" data-for="MASTER">80</span>
+      </div>
+    </div>
+
+    <!-- Transport -->
+    <div class="transport">
+      <button id="btn-play" class="btn-transport btn-play" title="Play / Stop">▶</button>
+      <button id="btn-reset" class="btn-transport" title="Reset">■</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════ A/B SYSTEM -->
+<section class="ab-bar">
+  <button id="btn-a" class="ab-btn active" data-set="A">A</button>
+  <button id="btn-copy-ab" class="ab-copy" title="Copy A → B">A→B</button>
+  <div class="crossfader-wrap">
+    <span class="cf-label">A</span>
+    <input type="range" id="crossfader" min="0" max="100" value="0" class="crossfader" />
+    <span class="cf-label">B</span>
+  </div>
+  <button id="btn-copy-ba" class="ab-copy" title="Copy B → A">B→A</button>
+  <button id="btn-b" class="ab-btn" data-set="B">B</button>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ TRACKS -->
+<main class="tracks-container" id="tracks-container">
+  <!-- Tracks injected by track.js -->
+</main>
+
+<!-- ═══════════════════════════════════════════════════════ PATTERNS BAR -->
+<footer class="patterns-bar">
+  <span class="patterns-label">PATTERNS</span>
+  <div class="patterns-list" id="patterns-list"></div>
+  <input type="text" id="pattern-name" class="pattern-input" placeholder="nom du pattern" />
+  <button id="btn-save" class="btn-pattern">SAVE</button>
+  <button id="btn-load" class="btn-pattern">LOAD</button>
+  <button id="btn-delete" class="btn-pattern btn-del">DEL</button>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════ SCRIPTS -->
+<script src="/js/knob.js"></script>
+<script src="/js/expressions.js"></script>
+<script src="/js/audio.js"></script>
+<script src="/js/sequencer.js"></script>
+<script src="/js/track.js"></script>
+<script src="/js/ab-system.js"></script>
+<script src="/js/ws-client.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
