@@ -3,6 +3,5 @@ venv/
 .env*
 __pycache__/
 *.pyc
-samples/
 patterns/
 .claude/settings.local.json

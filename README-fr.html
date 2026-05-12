@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AngelsAudioBox — Guide</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #222;
+    background: #f9f9f9;
+    margin: 0;
+    padding: 0;
+  }
+  .header {
+    background: #0a0a0a;
+    color: #fff;
+    padding: 32px 48px;
+    border-bottom: 4px solid #F0B90B;
+  }
+  .header h1 {
+    font-size: 28px;
+    letter-spacing: 3px;
+    margin: 0 0 6px 0;
+  }
+  .header h1 span { color: #F0B90B; }
+  .header p { color: #888; margin: 0; font-size: 13px; letter-spacing: 1px; }
+  .container { max-width: 780px; margin: 0 auto; padding: 40px 48px; }
+  h2 {
+    font-size: 18px;
+    color: #111;
+    border-bottom: 2px solid #F0B90B;
+    padding-bottom: 6px;
+    margin: 36px 0 14px;
+  }
+  h3 { font-size: 15px; color: #333; margin: 20px 0 8px; }
+  p { margin: 0 0 12px; }
+  .box {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-left: 4px solid #F0B90B;
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 16px 0;
+  }
+  .box.important { border-left-color: #e74c3c; }
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin: 12px 0;
+  }
+  .step-num {
+    background: #F0B90B;
+    color: #000;
+    font-weight: bold;
+    font-size: 13px;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    background: #fff;
+  }
+  th {
+    background: #0a0a0a;
+    color: #F0B90B;
+    text-align: left;
+    padding: 9px 14px;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  td { padding: 8px 14px; border-bottom: 1px solid #eee; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  code {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #c0392b;
+  }
+  .footer {
+    background: #0a0a0a;
+    color: #555;
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    margin-top: 48px;
+  }
+  .footer span { color: #F0B90B; }
+  .tag {
+    display: inline-block;
+    background: #0a0a0a;
+    color: #F0B90B;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: monospace;
+    margin: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>ANGELS</span>AUDIOBOX</h1>
+  <p>Beat'N'Block · Binance Angel · Guide d'utilisation</p>
+</div>
+
+<div class="container">
+
+  <h2>C'est quoi ?</h2>
+  <p>
+    AngelsAudioBox est une boîte à rythme qui tourne dans ton browser.
+    Tu charges tes propres sons, tu crées des patterns et tu joues en live.
+    Aucune installation nécessaire — tout fonctionne avec un simple double-clic.
+  </p>
+
+  <h2>Démarrer</h2>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div>Décompresse le fichier ZIP où tu veux sur ton ordinateur.</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div>Double-clique sur <strong>launch.bat</strong> — l'application s'ouvre automatiquement dans ton browser.</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div>Si le browser demande une autorisation pour le son, clique sur <strong>Autoriser</strong>.</div>
+  </div>
+
+  <div class="box">
+    Fonctionne avec Chrome, Edge et Firefox. Recommandé : Chrome.
+  </div>
+
+  <h2>Charger tes sons</h2>
+  <p>
+    Chaque piste (KICK, SNARE, HI-HAT...) peut jouer le son de ton choix.
+    Le dossier <strong>samples/</strong> contient des sons prêts à l'emploi organisés par catégorie.
+  </p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div>Ouvre le dossier <strong>samples/kick/</strong> dans l'explorateur.</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div>Fais glisser un fichier <strong>.wav</strong> ou <strong>.mp3</strong> sur la zone <strong>DROP</strong> de la piste KICK dans l'app.</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div>Le nom du fichier s'affiche sur la piste — le son est chargé.</div>
+  </div>
+
+  <p>Répète l'opération pour chaque piste avec le son de ton choix.</p>
+
+  <h2>Créer un rythme</h2>
+
+  <h3>En cliquant</h3>
+  <p>
+    Clique sur les cases de la grille pour allumer ou éteindre un temps.
+    Tu peux aussi <strong>cliquer et glisser</strong> pour activer plusieurs cases d'un coup.
+  </p>
+
+  <h3>Par expression</h3>
+  <p>
+    Chaque piste a un petit champ de texte. Tu peux y taper une formule pour générer le rythme automatiquement.
+  </p>
+
+  <table>
+    <tr><th>Expression</th><th>Résultat</th></tr>
+    <tr><td><code>euclidean(4, 16)</code></td><td>4 coups répartis régulièrement sur 16 temps</td></tr>
+    <tr><td><code>euclidean(3, 8)</code></td><td>3 coups sur 8 temps — groove naturel</td></tr>
+    <tr><td><code>[1,0,0,1,0,0,1,0]</code></td><td>Pattern exact que tu définis toi-même</td></tr>
+    <tr><td><code>fill(0.5)</code></td><td>Aléatoire — 50% de chance par temps</td></tr>
+    <tr><td><code>fill(0.75)</code></td><td>Aléatoire dense — 75% de chance</td></tr>
+  </table>
+
+  <p>Appuie sur <strong>Entrée</strong> pour appliquer.</p>
+
+  <h2>Les mémoires A B C D E F G H</h2>
+  <p>
+    Chaque piste dispose de <strong>8 mémoires de patterns</strong> indépendantes.
+    Clique sur une lettre pour y stocker ou rappeler un pattern différent.
+    Très utile pour avoir plusieurs variations et switcher en live.
+  </p>
+
+  <h2>Sets A et B</h2>
+  <p>
+    L'interface est divisée en deux colonnes — <strong>Set A</strong> et <strong>Set B</strong>.
+    Chaque set a ses propres 8 pistes et patterns.
+    La barre de <strong>crossfader</strong> en haut permet de passer progressivement de l'un à l'autre pendant la performance.
+  </p>
+
+  <h2>Nombre de temps</h2>
+  <p>
+    Le badge <strong>16</strong> à droite de chaque piste est cliquable.
+    Il bascule entre 8 et 16 temps. Tu peux mélanger les deux sur différentes pistes
+    pour créer des rythmes décalés.
+  </p>
+
+  <h2>Sauvegarder</h2>
+  <p>
+    En bas de l'écran, tape un nom dans le champ et clique <strong>SAVE</strong>.
+    Tes patterns sont sauvegardés dans le browser.
+    Pour les recharger : clique sur le nom dans la liste puis <strong>LOAD</strong>.
+  </p>
+
+  <h2>Contrôles rapides</h2>
+
+  <table>
+    <tr><th>Action</th><th>Comment</th></tr>
+    <tr><td>Démarrer / Arrêter</td><td>Bouton PLAY ou touche <strong>Espace</strong></td></tr>
+    <tr><td>Changer le tempo</td><td>Knob BPM en haut à droite</td></tr>
+    <tr><td>Volume général</td><td>Knob MASTER en haut à droite</td></tr>
+    <tr><td>Effacer une piste</td><td>Sélectionne une mémoire vide (A-H)</td></tr>
+  </table>
+
+  <h2>Quelques idées pour démarrer</h2>
+  <div class="box">
+    <strong>Kick :</strong> <code>euclidean(4, 16)</code> — kick classique 4/4<br>
+    <strong>Snare :</strong> <code>[0,0,1,0,0,0,1,0]</code> — snare aux temps 3 et 7<br>
+    <strong>Hi-Hat :</strong> <code>fill(0.75)</code> — hihat dense et vivant<br>
+    <strong>Perc :</strong> <code>euclidean(5, 16)</code> — groove asymétrique
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>AngelsAudioBox</span> · Beat'N'Block · Binance Angel Belgium<br>
+  Projet en développement — v1.0
+</div>
+
+</body>
+</html>

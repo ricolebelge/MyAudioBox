@@ -59,6 +59,10 @@ samples/           audio files served by /samples/<file>
 - **A/B blend**: `ABSystem.resolveStep(trackIndex, stepIndex)` returns `boolean | null` — null means use live state
 - **Sample storage**: `Audio.loadFile(file)` returns `{ url, buffer }` — URL is a `blob:` URL stored on the track; server-saved patterns store the `/samples/` path
 
+## Git
+
+- Never add `Co-Authored-By: Claude` (or any Claude/Anthropic attribution) in commit messages.
+
 ## API
 
 ```
