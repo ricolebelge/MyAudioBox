@@ -33,8 +33,9 @@ const App = (() => {
       }
     });
 
-    // Sequencer → tracks A (B is blended via ABSystem)
+    // Sequencer → tracks A (B is blended via ABSystem) + highlight B
     Sequencer.onStep((stepIndex, time) => {
+      tracksB.forEach(t => t.tick(stepIndex));
       tracksA.forEach((t, ti) => {
         const blended = ABSystem.resolveStep(ti, stepIndex);
         if (blended !== null) {
@@ -68,13 +69,19 @@ const App = (() => {
     // A/B system
     ABSystem.init(() => tracksA, () => tracksB);
 
+    const cfEl = document.getElementById('crossfader');
+    function updateCrossfader(v) {
+      ABSystem.setCrossfader(v);
+      cfEl.style.setProperty('--cf-val', v + '%');
+    }
+
     document.getElementById('btn-a').addEventListener('click', () => {
-      ABSystem.setCrossfader(0);
-      document.getElementById('crossfader').value = 0;
+      cfEl.value = 0;
+      updateCrossfader(0);
     });
     document.getElementById('btn-b').addEventListener('click', () => {
-      ABSystem.setCrossfader(100);
-      document.getElementById('crossfader').value = 100;
+      cfEl.value = 100;
+      updateCrossfader(100);
     });
     document.getElementById('btn-copy-ab').addEventListener('click', () => {
       ABSystem.copyAtoB();
@@ -82,9 +89,10 @@ const App = (() => {
     document.getElementById('btn-copy-ba').addEventListener('click', () => {
       ABSystem.copyBtoA();
     });
-    document.getElementById('crossfader').addEventListener('input', e => {
-      ABSystem.setCrossfader(parseInt(e.target.value));
+    cfEl.addEventListener('input', e => {
+      updateCrossfader(parseInt(e.target.value));
     });
+
 
     // Patterns bar
     document.getElementById('btn-save').addEventListener('click', savePattern);

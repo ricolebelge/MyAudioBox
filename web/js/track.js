@@ -280,6 +280,10 @@ class Track {
   }
 
   // ── Sequencer callback ─────────────────────────────────────────────────────
+  tick(globalStep) {
+    this._highlightStep(globalStep % this.stepMode);
+  }
+
   scheduleStep(globalStep, time) {
     const localStep = globalStep % this.stepMode;
     this._highlightStep(localStep);

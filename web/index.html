@@ -16,67 +16,74 @@
     <span class="brand-sub">Live Drum Machine</span>
   </div>
 
-  <div class="global-controls">
-    <div class="knob-group" id="global-knobs">
-      <div class="knob-wrap">
-        <canvas class="knob" data-name="BPM" data-min="40" data-max="240" data-value="120" data-step="1" tabindex="0"></canvas>
-        <span class="knob-label">BPM</span>
-        <span class="knob-val" data-for="BPM">120</span>
-      </div>
-      <div class="knob-wrap">
-        <canvas class="knob" data-name="SWING" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
-        <span class="knob-label">SWING</span>
-        <span class="knob-val" data-for="SWING">0</span>
-      </div>
-      <div class="knob-wrap">
-        <canvas class="knob" data-name="REVERB" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
-        <span class="knob-label">REVERB</span>
-        <span class="knob-val" data-for="REVERB">0</span>
-      </div>
-      <div class="knob-wrap">
-        <canvas class="knob" data-name="DELAY" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
-        <span class="knob-label">DELAY</span>
-        <span class="knob-val" data-for="DELAY">0</span>
-      </div>
-      <div class="knob-wrap">
-        <canvas class="knob" data-name="MASTER" data-min="0" data-max="100" data-value="80" tabindex="0"></canvas>
-        <span class="knob-label">MASTER</span>
-        <span class="knob-val" data-for="MASTER">80</span>
-      </div>
+  <div class="knob-group" id="global-knobs">
+    <div class="knob-wrap">
+      <canvas class="knob" data-name="BPM" data-min="40" data-max="240" data-value="120" data-step="1" tabindex="0"></canvas>
+      <span class="knob-label">BPM</span>
+      <span class="knob-val" data-for="BPM">120</span>
     </div>
+    <div class="knob-wrap">
+      <canvas class="knob" data-name="SWING" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
+      <span class="knob-label">SWING</span>
+      <span class="knob-val" data-for="SWING">0</span>
+    </div>
+    <div class="knob-wrap">
+      <canvas class="knob" data-name="REVERB" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
+      <span class="knob-label">REVERB</span>
+      <span class="knob-val" data-for="REVERB">0</span>
+    </div>
+    <div class="knob-wrap">
+      <canvas class="knob" data-name="DELAY" data-min="0" data-max="100" data-value="0" tabindex="0"></canvas>
+      <span class="knob-label">DELAY</span>
+      <span class="knob-val" data-for="DELAY">0</span>
+    </div>
+    <div class="knob-wrap knob-wrap--master">
+      <canvas class="knob" data-name="MASTER" data-min="0" data-max="100" data-value="80" tabindex="0"></canvas>
+      <span class="knob-label">MASTER</span>
+      <span class="knob-val" data-for="MASTER">80</span>
+    </div>
+  </div>
 
-    <div class="transport">
-      <button id="btn-play" class="btn-transport btn-play" title="Play / Stop">▶</button>
-      <button id="btn-reset" class="btn-transport" title="Reset">■</button>
-    </div>
+  <div class="transport">
+    <button id="btn-play" class="btn-transport btn-play" title="Play / Stop">▶</button>
+    <button id="btn-reset" class="btn-transport" title="Reset">■</button>
   </div>
 </header>
 
 <!-- ═══════════════════════════════════ 3-COLUMN GRID -->
 <main class="main-grid">
 
-  <!-- ── COL 1 : SET A ── -->
-  <section class="set-col" id="col-a">
-    <div class="set-header">
+  <!-- ── HEADER A/B (spans col-a + col-b) ── -->
+  <div class="ab-header">
+    <div class="ab-side">
       <span class="set-label">SET A</span>
       <button class="ab-btn active" id="btn-a">A</button>
       <button class="ab-copy" id="btn-copy-ab" title="Copy A → B">A→B</button>
     </div>
+    <div class="crossfader-wrap">
+      <div class="cf-track">
+        <span class="cf-label">A</span>
+        <div class="cf-slider">
+          <input type="range" id="crossfader" min="0" max="100" value="0" class="crossfader" />
+          <span class="cf-center"></span>
+        </div>
+        <span class="cf-label">B</span>
+      </div>
+    </div>
+    <div class="ab-side ab-side-b">
+      <button class="ab-copy" id="btn-copy-ba" title="Copy B → A">B→A</button>
+      <button class="ab-btn" id="btn-b">B</button>
+      <span class="set-label">SET B</span>
+    </div>
+  </div>
+
+  <!-- ── COL 1 : SET A ── -->
+  <section class="set-col" id="col-a">
     <div class="tracks-container" id="tracks-a"></div>
   </section>
 
   <!-- ── COL 2 : SET B ── -->
   <section class="set-col" id="col-b">
-    <div class="set-header">
-      <span class="set-label">SET B</span>
-      <div class="crossfader-wrap">
-        <span class="cf-label">A</span>
-        <input type="range" id="crossfader" min="0" max="100" value="0" class="crossfader" />
-        <span class="cf-label">B</span>
-      </div>
-      <button class="ab-copy" id="btn-copy-ba" title="Copy B → A">B→A</button>
-      <button class="ab-btn" id="btn-b">B</button>
-    </div>
     <div class="tracks-container" id="tracks-b"></div>
   </section>
 
