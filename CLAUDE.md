@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-AngelsAudioBox — live coding web drum machine (TR-909 style, Binance yellow #F0B90B on black).
+MyAudioBox — live coding web drum machine (TR-909 style, Binance yellow #F0B90B on black).
 Beat'N'Block / Binance Angel project.
 
 ## Launch

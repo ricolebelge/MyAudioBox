@@ -1,15 +1,15 @@
 @echo off
-title AngelsAudioBox — Make Release
+title MyAudioBox — Make Release
 cd /d "%~dp0"
 
 set VERSION=v1.0
-set RELEASE_NAME=AngelsAudioBox-%VERSION%
+set RELEASE_NAME=MyAudioBox-%VERSION%
 set BUILD_DIR=%~dp0build\%RELEASE_NAME%
 set OUTPUT_ZIP=%~dp0%RELEASE_NAME%.zip
 
 echo.
 echo  ================================
-echo   ANGELSAUDIOBOX — Make Release
+echo   MYAUDIOBOX — Make Release
 echo   Building %RELEASE_NAME%...
 echo  ================================
 echo.

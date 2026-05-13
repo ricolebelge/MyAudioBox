@@ -1,11 +1,10 @@
 @echo off
-title AngelsAudioBox — Beat'N'Block
+title MyAudioBox — Live Drum Machine
 cd /d "%~dp0"
 
 echo.
 echo  ================================
-echo   ANGELSAUDIOBOX — Beat'N'Block
-echo   Binance Angel
+echo   MYAUDIOBOX — Live Drum Machine
 echo  ================================
 echo.
 echo  Ouverture dans le browser...
