@@ -33,9 +33,8 @@ const App = (() => {
       }
     });
 
-    // Sequencer → tracks A (B is blended via ABSystem) + highlight B
+    // Sequencer → audio scheduling only (visual cursor handled by rAF below)
     Sequencer.onStep((stepIndex, time) => {
-      tracksB.forEach(t => t.tick(stepIndex));
       tracksA.forEach((t, ti) => {
         const blended = ABSystem.resolveStep(ti, stepIndex);
         if (blended !== null) {
@@ -101,6 +100,18 @@ const App = (() => {
       if (name) loadPattern(name);
     });
     document.getElementById('btn-delete').addEventListener('click', deletePattern);
+
+    // Visual cursor — driven by AudioContext time, not the look-ahead scheduler
+    let _lastVS = -2;
+    (function _rafLoop() {
+      const vs = Sequencer.isPlaying ? Sequencer.getVisualStep() : -1;
+      if (vs !== _lastVS) {
+        tracksA.forEach(t => t.tick(vs));
+        tracksB.forEach(t => t.tick(vs));
+        _lastVS = vs;
+      }
+      requestAnimationFrame(_rafLoop);
+    }());
 
     WSClient.start();
     refreshPatterns();

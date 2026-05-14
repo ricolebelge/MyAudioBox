@@ -286,7 +286,6 @@ class Track {
 
   scheduleStep(globalStep, time) {
     const localStep = globalStep % this.stepMode;
-    this._highlightStep(localStep);
     if (!this.steps[localStep] || !this.buffer) return;
 
     Audio.playStep(this.buffer, time, {

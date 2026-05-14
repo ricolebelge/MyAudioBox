@@ -13,7 +13,7 @@
  */
 
 const Sequencer = (() => {
-  const SCHEDULE_AHEAD = 0.10; // seconds
+  const SCHEDULE_AHEAD = 0.15; // seconds — wider buffer against JS jitter
   const LOOKAHEAD_MS   = 25;   // setTimeout interval
 
   let bpm         = 120;
@@ -25,6 +25,9 @@ const Sequencer = (() => {
   let stepHandlers = [];
   let timerId      = null;
   let stepCount    = 16;     // global step count (max of all tracks)
+
+  // Ring buffer of scheduled {step, time} pairs — drives the visual cursor
+  const _sched = [];
 
   function stepDuration() {
     return 60 / bpm / 4; // 16th note in seconds
@@ -44,6 +47,10 @@ const Sequencer = (() => {
       const time = nextStepTime + swingOffset(currentStep);
       stepHandlers.forEach(fn => fn(currentStep, time, beat));
 
+      // Record for visual cursor
+      _sched.push({ step: currentStep, time });
+      if (_sched.length > 128) _sched.shift();
+
       // Advance
       nextStepTime += stepDuration();
       currentStep = (currentStep + 1) % stepCount;
@@ -52,6 +59,17 @@ const Sequencer = (() => {
         Expressions.setGlobalBeat(beat);
       }
     }
+  }
+
+  // Returns the step actually playing right now (for rAF visual cursor).
+  function getVisualStep() {
+    if (!Audio.ctx || !playing) return -1;
+    const now = Audio.ctx.currentTime;
+    let best = null;
+    for (const s of _sched) {
+      if (s.time <= now && (!best || s.time > best.time)) best = s;
+    }
+    return best ? best.step : -1;
   }
 
   function tick() {
@@ -63,17 +81,26 @@ const Sequencer = (() => {
   function start() {
     if (playing) return;
     Audio.init();
-    playing = true;
-    nextStepTime = Audio.ctx.currentTime + 0.05;
-    currentStep  = 0;
-    beat         = 0;
-    Expressions.setGlobalBeat(0);
-    tick();
+    const _run = () => {
+      playing      = true;
+      nextStepTime = Audio.ctx.currentTime + 0.05;
+      currentStep  = 0;
+      beat         = 0;
+      _sched.length = 0;
+      Expressions.setGlobalBeat(0);
+      tick();
+    };
+    if (Audio.ctx.state !== 'running') {
+      Audio.ctx.resume().then(_run);
+    } else {
+      _run();
+    }
   }
 
   function stop() {
     playing = false;
     clearTimeout(timerId);
+    _sched.length = 0;
   }
 
   function reset() {
@@ -101,7 +128,7 @@ const Sequencer = (() => {
 
   return {
     start, stop, reset,
-    setBpm, setSwing, setStepCount, onStep,
+    setBpm, setSwing, setStepCount, onStep, getVisualStep,
     get isPlaying()    { return playing;     },
     get currentStep()  { return currentStep; },
     get bpm()          { return bpm;         },
