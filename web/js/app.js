@@ -1,5 +1,5 @@
 const App = (() => {
-  const TRACK_NAMES = ['KICK', 'SNARE', 'HI-HAT', 'OPEN-HH', 'CLAP', 'TOM', 'PERC', 'FX'];
+  const TRACK_NAMES = ['A', 'B', 'C', 'D'];
 
   let tracksA = [];   // Set A — indices 0–7  (sequencer live)
   let tracksB = [];   // Set B — indices 8–15 (crossfader target)
@@ -115,16 +115,6 @@ const App = (() => {
 
     WSClient.start();
     refreshPatterns();
-    refreshSamples();
-  }
-
-  async function refreshSamples() {
-    try {
-      const res = await fetch('/api/samples');
-      if (!res.ok) return;
-      const names = await res.json();
-      [...tracksA, ...tracksB].forEach(t => t.setSampleList(names));
-    } catch {}
   }
 
   // ── Transport ──────────────────────────────────────────────────────────────
