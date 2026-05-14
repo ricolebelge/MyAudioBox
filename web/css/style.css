@@ -305,6 +305,16 @@ html, body {
 .sample-drop.loaded { border-color: var(--yellow-dim); color: var(--text); border-style: solid; }
 
 
+.sample-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 8px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .drop-btn {
   cursor: pointer;
   font-size: 8px;

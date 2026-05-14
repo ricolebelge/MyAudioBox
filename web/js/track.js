@@ -32,6 +32,7 @@ class Track {
       <div class="track-top">
         <span class="track-name">${this.name}</span>
         <input class="track-expr" data-role="expr" placeholder="euclidean(5,16)" spellcheck="false" />
+        <span class="sample-name" data-role="sample-name">—</span>
         <label class="drop-btn" data-role="drop" title="Charger un fichier local">
           <input type="file" accept=".wav,.mp3,.ogg,.flac,.aif,.aiff" style="display:none" data-role="file-input">
           &#x25B2;
@@ -196,6 +197,7 @@ class Track {
       const { url, buffer } = await Audio.loadFile(file);
       this.sampleUrl = url;
       this.buffer    = buffer;
+      this._showSampleName(file.name);
     } catch (e) {
       console.error('Sample load failed:', e);
     }
@@ -206,9 +208,15 @@ class Track {
       Audio.init();
       this.sampleUrl = url;
       this.buffer    = await Audio.loadSample(url);
+      this._showSampleName(url.split('/').pop());
     } catch (e) {
       console.error('Sample load failed:', e);
     }
+  }
+
+  _showSampleName(name) {
+    const el = this.el.querySelector('[data-role="sample-name"]');
+    if (el) el.textContent = name;
   }
 
   // ── Knobs ──────────────────────────────────────────────────────────────────
