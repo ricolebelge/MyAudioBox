@@ -115,6 +115,16 @@ const App = (() => {
 
     WSClient.start();
     refreshPatterns();
+    refreshSamples();
+  }
+
+  async function refreshSamples() {
+    try {
+      const res = await fetch('/api/samples');
+      if (!res.ok) return;
+      const names = await res.json();
+      [...tracksA, ...tracksB].forEach(t => t.setSampleList(names));
+    } catch {}
   }
 
   // ── Transport ──────────────────────────────────────────────────────────────

@@ -106,6 +106,15 @@ class Handler(BaseHTTPRequestHandler):
         path = unquote(parsed.path)
 
         # ── API ──
+        if path == "/api/samples":
+            exts = {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff'}
+            files = sorted([
+                f.name for f in SAMPLES_DIR.iterdir()
+                if f.is_file() and f.suffix.lower() in exts
+            ]) if SAMPLES_DIR.exists() else []
+            self._send_json(200, files)
+            return
+
         if path == "/api/patterns":
             names = [p.stem for p in sorted(PATTERNS_DIR.glob("*.json"))]
             self._send_json(200, names)

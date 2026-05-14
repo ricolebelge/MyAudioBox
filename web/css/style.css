@@ -313,16 +313,35 @@ html, body {
 .sample-drop:hover, .track.drag-over .sample-drop { border-color: var(--yellow); color: var(--yellow); }
 .sample-drop.loaded { border-color: var(--yellow-dim); color: var(--text); border-style: solid; }
 
+.sample-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 8px;
+  padding: 1px 3px;
+  border-radius: var(--radius);
+  flex: 1;
+  min-width: 0;
+  outline: none;
+  cursor: pointer;
+  height: 16px;
+}
+.sample-select:focus { border-color: var(--yellow); }
+.sample-select option { background: var(--bg2); }
+
 .drop-btn {
   cursor: pointer;
-  font-size: 7px;
+  font-size: 8px;
   color: #888;
   border: 1px solid #2a2a2a;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 2px;
   white-space: nowrap;
-  margin-left: auto;
+  flex-shrink: 0;
   transition: all 0.1s;
+  display: flex;
+  align-items: center;
 }
 .drop-btn:hover {
   border-color: #F0B90B;
