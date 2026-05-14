@@ -32,9 +32,6 @@ class Track {
       <div class="track-top">
         <span class="track-name">${this.name}</span>
         <input class="track-expr" data-role="expr" placeholder="euclidean(5,16)" spellcheck="false" />
-        <select class="sample-select" data-role="sample-select">
-          <option value="">-- sample --</option>
-        </select>
         <label class="drop-btn" data-role="drop" title="Charger un fichier local">
           <input type="file" accept=".wav,.mp3,.ogg,.flac,.aif,.aiff" style="display:none" data-role="file-input">
           &#x25B2;
@@ -114,12 +111,6 @@ class Track {
     exprInput.addEventListener('input', () => {
       this.expression = exprInput.value;
       this._applyExpression();
-    });
-
-    // Sample dropdown
-    const sel = this.el.querySelector('[data-role="sample-select"]');
-    sel.addEventListener('change', () => {
-      if (sel.value) this.loadFromUrl('/samples/' + sel.value);
     });
 
     // File input inside the label
@@ -205,44 +196,8 @@ class Track {
       const { url, buffer } = await Audio.loadFile(file);
       this.sampleUrl = url;
       this.buffer    = buffer;
-      this._syncSelect(url);
     } catch (e) {
       console.error('Sample load failed:', e);
-    }
-  }
-
-  setSampleList(names) {
-    const sel = this.el.querySelector('[data-role="sample-select"]');
-    if (!sel) return;
-    const current = sel.value;
-    while (sel.options.length > 1) sel.remove(1);
-    names.forEach(name => {
-      const o = document.createElement('option');
-      o.value = name;
-      o.textContent = name;
-      sel.appendChild(o);
-    });
-    if (current) sel.value = current;
-  }
-
-  _syncSelect(url) {
-    const sel = this.el.querySelector('[data-role="sample-select"]');
-    if (!sel) return;
-    if (url && url.startsWith('/samples/')) {
-      sel.value = url.slice('/samples/'.length);
-    } else if (url) {
-      // Custom file — add or update a temporary option
-      let tmp = sel.querySelector('[data-custom]');
-      if (!tmp) {
-        tmp = document.createElement('option');
-        tmp.dataset.custom = '1';
-        sel.insertBefore(tmp, sel.options[1] || null);
-      }
-      tmp.value    = url;
-      tmp.textContent = '▲ ' + url.split('/').pop().split('?')[0];
-      sel.value = url;
-    } else {
-      sel.value = '';
     }
   }
 
@@ -251,7 +206,6 @@ class Track {
       Audio.init();
       this.sampleUrl = url;
       this.buffer    = await Audio.loadSample(url);
-      this._syncSelect(url);
     } catch (e) {
       console.error('Sample load failed:', e);
     }
