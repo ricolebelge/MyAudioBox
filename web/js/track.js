@@ -307,6 +307,13 @@ class Track {
     });
   }
 
+  // ── Knob reset ─────────────────────────────────────────────────────────────
+  resetKnobs() {
+    this.vol = 80; this.pitch = 50; this.pan = 50; this.filter = 100; this.send = 0;
+    const s = (prefix, val) => Knob.setKnobValue(`${prefix}_${this.index}`, val);
+    s('VOL', 80); s('PCH', 50); s('PAN', 50); s('FLT', 100); s('SND', 0);
+  }
+
   // ── Serialization ──────────────────────────────────────────────────────────
   toJSON() {
     return {
@@ -325,6 +332,7 @@ class Track {
   }
 
   fromJSON(data) {
+    this.resetKnobs();
     if (data.stepMode && data.stepMode !== this.stepMode) this._setStepMode(data.stepMode);
     if (data.steps) {
       this.steps = [...data.steps];

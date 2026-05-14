@@ -5,8 +5,8 @@ import logging
 from datetime import datetime
 
 import websockets
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # ── .env loader ──────────────────────────────────────────────────────────────
 
@@ -26,6 +26,18 @@ CHAT_ID  = int(_e["TELEGRAM_CHAT_ID"])
 OWNER_ID = int(_e["TELEGRAM_OWNER_ID"])
 
 WS_PORT = 8002
+
+GENRE_BUTTONS = [
+    ["Techno",  "Acid",     "House",   "Trance"],
+    ["Ambient", "Drum&Bass","Trap",    "Lo-Fi"],
+    ["Electro", "Afrobeat", "Hip-Hop", "Autre"],
+]
+
+def _genre_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(g, callback_data=f"genre:{g}") for g in row]
+        for row in GENRE_BUTTONS
+    ])
 
 # ── Server-side accumulator (reference only — not sent on connect) ────────────
 
@@ -140,14 +152,26 @@ async def cmd_slower(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 async def cmd_genre(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     if not _in_group(update): return
     genre = " ".join(ctx.args).strip() if ctx.args else ""
-    if not genre: return
+    if not genre:
+        await update.message.reply_text("Quel genre ?", reply_markup=_genre_keyboard())
+        return
+    await _apply_genre(genre, update.effective_user.first_name)
+
+async def _apply_genre(genre: str, username: str) -> None:
     state["genres"].append(genre)
     await _broadcast_increment(
         votes={"encore": 0, "stop": 0, "change": 0},
         bpm={"faster": 0, "slower": 0, "delta": 0},
         genres=[genre],
-        msg=_log(update.effective_user.first_name, f"/genre {genre}"),
+        msg=_log(username, f"/genre {genre}"),
     )
+
+async def cmd_genre_callback(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if query.message.chat.id != CHAT_ID: return
+    genre = query.data.split(":", 1)[1]
+    await query.answer()
+    await _apply_genre(genre, query.from_user.first_name)
 
 async def cmd_reset(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id != OWNER_ID: return
@@ -182,10 +206,11 @@ async def main() -> None:
     app.add_handler(CommandHandler("slower", cmd_slower))
     app.add_handler(CommandHandler("genre",  cmd_genre))
     app.add_handler(CommandHandler("reset",  cmd_reset))
+    app.add_handler(CallbackQueryHandler(cmd_genre_callback, pattern=r"^genre:"))
 
     async with app:
         await app.start()
-        await app.updater.start_polling(allowed_updates=["message"])
+        await app.updater.start_polling(allowed_updates=["message", "callback_query"])
         log.info("Telegram polling  ->  chat %d", CHAT_ID)
 
         async with websockets.serve(_ws_handler, "0.0.0.0", WS_PORT):
