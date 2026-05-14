@@ -79,7 +79,7 @@ const Crowd = (() => {
         ${voteRow('FASTER', bpm.faster, maxBpm, 'cv-fill--green')}
         ${voteRow('SLOWER', bpm.slower, maxBpm, 'cv-fill--blue')}
         <div class="cv-delta-row">
-          <span class="cv-section-label">DELTA</span>
+          <span class="cv-section-label">BPM REQUEST</span>
           <span class="cv-delta ${deltaClass}">${deltaStr}</span>
         </div>
       </div>
