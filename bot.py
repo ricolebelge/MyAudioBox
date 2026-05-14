@@ -6,7 +6,7 @@ from datetime import datetime
 
 import websockets
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 # ── .env loader ──────────────────────────────────────────────────────────────
 
@@ -88,9 +88,12 @@ def _log(username: str, text: str) -> str:
     ts    = datetime.now().strftime("%H:%M")
     entry = f"[{ts}] {username}: {text}"
     state["messages"].append(entry)
-    if len(state["messages"]) > 100:
-        state["messages"] = state["messages"][-100:]
+    if len(state["messages"]) > 20:
+        state["messages"] = state["messages"][-20:]
     return entry
+
+def _uname(user) -> str:
+    return f"@{user.username}" if user.username else user.first_name
 
 def _in_group(update: Update) -> bool:
     return update.effective_chat.id == CHAT_ID
@@ -104,7 +107,7 @@ async def cmd_encore(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         votes={"encore": 1, "stop": 0, "change": 0},
         bpm={"faster": 0, "slower": 0, "delta": 0},
         genres=[],
-        msg=_log(update.effective_user.first_name, "/encore"),
+        msg=_log(_uname(update.effective_user), "/encore"),
     )
 
 async def cmd_stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -114,7 +117,7 @@ async def cmd_stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         votes={"encore": 0, "stop": 1, "change": 0},
         bpm={"faster": 0, "slower": 0, "delta": 0},
         genres=[],
-        msg=_log(update.effective_user.first_name, "/stop"),
+        msg=_log(_uname(update.effective_user), "/stop"),
     )
 
 async def cmd_change(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -124,7 +127,7 @@ async def cmd_change(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         votes={"encore": 0, "stop": 0, "change": 1},
         bpm={"faster": 0, "slower": 0, "delta": 0},
         genres=[],
-        msg=_log(update.effective_user.first_name, "/change"),
+        msg=_log(_uname(update.effective_user), "/change"),
     )
 
 async def cmd_faster(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -135,7 +138,7 @@ async def cmd_faster(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         votes={"encore": 0, "stop": 0, "change": 0},
         bpm={"faster": 1, "slower": 0, "delta": 5},
         genres=[],
-        msg=_log(update.effective_user.first_name, "/faster"),
+        msg=_log(_uname(update.effective_user), "/faster"),
     )
 
 async def cmd_slower(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -146,7 +149,7 @@ async def cmd_slower(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         votes={"encore": 0, "stop": 0, "change": 0},
         bpm={"faster": 0, "slower": 1, "delta": -5},
         genres=[],
-        msg=_log(update.effective_user.first_name, "/slower"),
+        msg=_log(_uname(update.effective_user), "/slower"),
     )
 
 async def cmd_genre(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -155,7 +158,7 @@ async def cmd_genre(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     if not genre:
         await update.message.reply_text("Quel genre ?", reply_markup=_genre_keyboard())
         return
-    await _apply_genre(genre, update.effective_user.first_name)
+    await _apply_genre(genre, _uname(update.effective_user))
 
 async def _apply_genre(genre: str, username: str) -> None:
     state["genres"].append(genre)
@@ -171,7 +174,18 @@ async def cmd_genre_callback(update: Update, _: ContextTypes.DEFAULT_TYPE) -> No
     if query.message.chat.id != CHAT_ID: return
     genre = query.data.split(":", 1)[1]
     await query.answer()
-    await _apply_genre(genre, query.from_user.first_name)
+    await _apply_genre(genre, _uname(query.from_user))
+
+async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _in_group(update): return
+    text = (update.message.text or "").strip()
+    if not text: return
+    await _broadcast_increment(
+        votes={"encore": 0, "stop": 0, "change": 0},
+        bpm={"faster": 0, "slower": 0, "delta": 0},
+        genres=[],
+        msg=_log(_uname(update.effective_user), text[:120]),
+    )
 
 async def cmd_reset(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id != OWNER_ID: return
@@ -207,6 +221,10 @@ async def main() -> None:
     app.add_handler(CommandHandler("genre",  cmd_genre))
     app.add_handler(CommandHandler("reset",  cmd_reset))
     app.add_handler(CallbackQueryHandler(cmd_genre_callback, pattern=r"^genre:"))
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & filters.Chat(CHAT_ID),
+        on_message,
+    ))
 
     async with app:
         await app.start()
