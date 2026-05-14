@@ -177,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run_http():
     server = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), Handler)
-    print(f"HTTP  → http://localhost:{HTTP_PORT}")
+    print(f"HTTP  -> http://localhost:{HTTP_PORT}")
     server.serve_forever()
 
 # ── WebSocket server ──────────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ async def main():
     t.start()
 
     # WebSocket
-    print(f"WS    → ws://localhost:{WS_PORT}")
+    print(f"WS    -> ws://localhost:{WS_PORT}")
     print("Ctrl+C pour arrêter\n")
     async with websockets.serve(ws_handler, "0.0.0.0", WS_PORT):
         await asyncio.Future()  # run forever
