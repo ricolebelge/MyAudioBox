@@ -27,7 +27,7 @@ OWNER_ID = int(_e["TELEGRAM_OWNER_ID"])
 
 WS_PORT = 8002
 
-# ── State ────────────────────────────────────────────────────────────────────
+# ── Server-side accumulator (reference only — not sent on connect) ────────────
 
 def _fresh() -> dict:
     return {
@@ -37,27 +37,14 @@ def _fresh() -> dict:
         "messages": [],
     }
 
-state: dict      = _fresh()
-ws_clients: set  = set()
+state: dict     = _fresh()
+ws_clients: set = set()
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Broadcast ────────────────────────────────────────────────────────────────
+# Each crowd_update carries only the INCREMENT that just happened.
+# Clients accumulate from 0; only crowd_reset zeroes them out.
 
-def _log_msg(username: str, text: str) -> None:
-    ts = datetime.now().strftime("%H:%M")
-    state["messages"].append(f"[{ts}] {username}: {text}")
-    if len(state["messages"]) > 20:
-        state["messages"] = state["messages"][-20:]
-
-async def broadcast() -> None:
-    if not ws_clients:
-        return
-    payload = json.dumps({
-        "type":     "crowd_update",
-        "votes":    state["votes"],
-        "bpm":      state["bpm"],
-        "genres":   state["genres"],
-        "messages": state["messages"],
-    })
+async def _send_all(payload: str) -> None:
     dead = set()
     for ws in ws_clients:
         try:
@@ -66,73 +53,113 @@ async def broadcast() -> None:
             dead.add(ws)
     ws_clients.difference_update(dead)
 
+async def _broadcast_increment(
+    votes:  dict,
+    bpm:    dict,
+    genres: list,
+    msg:    str,
+) -> None:
+    await _send_all(json.dumps({
+        "type":     "crowd_update",
+        "votes":    votes,
+        "bpm":      bpm,
+        "genres":   genres,
+        "messages": [msg],
+    }))
+
+async def _broadcast_reset() -> None:
+    await _send_all(json.dumps({"type": "crowd_reset"}))
+
+# ── Message log ───────────────────────────────────────────────────────────────
+
+def _log(username: str, text: str) -> str:
+    ts    = datetime.now().strftime("%H:%M")
+    entry = f"[{ts}] {username}: {text}"
+    state["messages"].append(entry)
+    if len(state["messages"]) > 100:
+        state["messages"] = state["messages"][-100:]
+    return entry
+
 def _in_group(update: Update) -> bool:
     return update.effective_chat.id == CHAT_ID
 
-# ── Command handlers ─────────────────────────────────────────────────────────
-
-async def _vote(update: Update, key: str) -> None:
-    if not _in_group(update):
-        return
-    state["votes"][key] += 1
-    _log_msg(update.effective_user.first_name, f"/{key}")
-    await broadcast()
+# ── Command handlers — broadcast increment only ──────────────────────────────
 
 async def cmd_encore(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    await _vote(update, "encore")
+    if not _in_group(update): return
+    state["votes"]["encore"] += 1
+    await _broadcast_increment(
+        votes={"encore": 1, "stop": 0, "change": 0},
+        bpm={"faster": 0, "slower": 0, "delta": 0},
+        genres=[],
+        msg=_log(update.effective_user.first_name, "/encore"),
+    )
 
 async def cmd_stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    await _vote(update, "stop")
+    if not _in_group(update): return
+    state["votes"]["stop"] += 1
+    await _broadcast_increment(
+        votes={"encore": 0, "stop": 1, "change": 0},
+        bpm={"faster": 0, "slower": 0, "delta": 0},
+        genres=[],
+        msg=_log(update.effective_user.first_name, "/stop"),
+    )
 
 async def cmd_change(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    await _vote(update, "change")
+    if not _in_group(update): return
+    state["votes"]["change"] += 1
+    await _broadcast_increment(
+        votes={"encore": 0, "stop": 0, "change": 1},
+        bpm={"faster": 0, "slower": 0, "delta": 0},
+        genres=[],
+        msg=_log(update.effective_user.first_name, "/change"),
+    )
 
 async def cmd_faster(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _in_group(update):
-        return
+    if not _in_group(update): return
     state["bpm"]["faster"] += 1
     state["bpm"]["delta"]  += 5
-    _log_msg(update.effective_user.first_name, "/faster")
-    await broadcast()
+    await _broadcast_increment(
+        votes={"encore": 0, "stop": 0, "change": 0},
+        bpm={"faster": 1, "slower": 0, "delta": 5},
+        genres=[],
+        msg=_log(update.effective_user.first_name, "/faster"),
+    )
 
 async def cmd_slower(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _in_group(update):
-        return
+    if not _in_group(update): return
     state["bpm"]["slower"] += 1
     state["bpm"]["delta"]  -= 5
-    _log_msg(update.effective_user.first_name, "/slower")
-    await broadcast()
+    await _broadcast_increment(
+        votes={"encore": 0, "stop": 0, "change": 0},
+        bpm={"faster": 0, "slower": 1, "delta": -5},
+        genres=[],
+        msg=_log(update.effective_user.first_name, "/slower"),
+    )
 
 async def cmd_genre(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _in_group(update):
-        return
+    if not _in_group(update): return
     genre = " ".join(ctx.args).strip() if ctx.args else ""
-    if not genre:
-        return
+    if not genre: return
     state["genres"].append(genre)
-    if len(state["genres"]) > 10:
-        state["genres"] = state["genres"][-10:]
-    _log_msg(update.effective_user.first_name, f"/genre {genre}")
-    await broadcast()
+    await _broadcast_increment(
+        votes={"encore": 0, "stop": 0, "change": 0},
+        bpm={"faster": 0, "slower": 0, "delta": 0},
+        genres=[genre],
+        msg=_log(update.effective_user.first_name, f"/genre {genre}"),
+    )
 
 async def cmd_reset(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user.id != OWNER_ID:
-        return
+    if update.effective_user.id != OWNER_ID: return
     state.update(_fresh())
-    await broadcast()
+    await _broadcast_reset()
 
-# ── WebSocket server ─────────────────────────────────────────────────────────
+# ── WebSocket server ──────────────────────────────────────────────────────────
+# No initial state on connect — client starts at 0 and accumulates.
 
 async def _ws_handler(websocket) -> None:
     ws_clients.add(websocket)
     try:
-        await websocket.send(json.dumps({
-            "type":     "crowd_update",
-            "votes":    state["votes"],
-            "bpm":      state["bpm"],
-            "genres":   state["genres"],
-            "messages": state["messages"],
-        }))
         await websocket.wait_closed()
     finally:
         ws_clients.discard(websocket)
@@ -159,12 +186,12 @@ async def main() -> None:
     async with app:
         await app.start()
         await app.updater.start_polling(allowed_updates=["message"])
-        log.info("Telegram polling  →  chat %d", CHAT_ID)
+        log.info("Telegram polling  ->  chat %d", CHAT_ID)
 
         async with websockets.serve(_ws_handler, "0.0.0.0", WS_PORT):
             log.info("WS crowd server   ->  ws://localhost:%d", WS_PORT)
             log.info("/reset owner-only — votes accumulate until manual reset")
-            await asyncio.Future()  # run forever
+            await asyncio.Future()
 
         await app.updater.stop()
         await app.stop()
@@ -174,4 +201,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nArrêt.")
+        print("\nArret.")

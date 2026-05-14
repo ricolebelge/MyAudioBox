@@ -4,30 +4,50 @@ const Crowd = (() => {
   let retryTimer = null;
   const isFile = location.protocol === 'file:';
 
-  // Persistent state — never reset on reconnect or new crowd_update
+  // Persistent local state — initialised at 0, accumulates increments.
+  // Only crowd_reset zeroes it out.
   const _s = {
     votes:    { encore: 0, stop: 0, change: 0 },
     bpm:      { faster: 0, slower: 0, delta: 0 },
     genres:   [],
-    messages: [],   // full client-side history
+    messages: [],
   };
-  const _seen = new Set();  // deduplicate messages across reconnects
+  const _seen = new Set();
 
   // ── Merge ────────────────────────────────────────────────────────────────
-  // votes/bpm/genres: server is authoritative (it accumulates since last /reset)
-  // messages: client keeps full history, appends only new entries
 
   function _merge(data) {
-    if (data.votes)  Object.assign(_s.votes, data.votes);
-    if (data.bpm)    Object.assign(_s.bpm,   data.bpm);
-    if (data.genres) _s.genres = data.genres;
-
-    for (const m of (data.messages || [])) {
-      if (!_seen.has(m)) {
-        _seen.add(m);
-        _s.messages.push(m);
-      }
+    if (data.type === 'crowd_reset') {
+      _s.votes    = { encore: 0, stop: 0, change: 0 };
+      _s.bpm      = { faster: 0, slower: 0, delta: 0 };
+      _s.genres   = [];
+      _s.messages = [];
+      _seen.clear();
+      render();
+      return;
     }
+
+    // votes: server sends the increment (e.g. {encore:1, stop:0, change:0})
+    _s.votes.encore += (data.votes?.encore || 0);
+    _s.votes.stop   += (data.votes?.stop   || 0);
+    _s.votes.change += (data.votes?.change || 0);
+
+    // bpm: server sends the increment (e.g. {faster:1, slower:0, delta:5})
+    _s.bpm.faster += (data.bpm?.faster || 0);
+    _s.bpm.slower += (data.bpm?.slower || 0);
+    _s.bpm.delta  += (data.bpm?.delta  || 0);
+
+    // genres: append new ones only
+    for (const g of (data.genres || [])) {
+      if (!_s.genres.includes(g)) _s.genres.push(g);
+    }
+
+    // messages: full client-side history, no duplicates
+    for (const m of (data.messages || [])) {
+      if (!_seen.has(m)) { _seen.add(m); _s.messages.push(m); }
+    }
+
+    render();
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -108,16 +128,13 @@ const Crowd = (() => {
       };
 
       ws.onmessage = e => {
-        try {
-          const msg = JSON.parse(e.data);
-          if (msg.type === 'crowd_update') { _merge(msg); render(); }
-        } catch {}
+        try { _merge(JSON.parse(e.data)); } catch {}
       };
 
       ws.onerror = () => {};
 
       ws.onclose = () => {
-        // keep showing last known state — do NOT reset _s
+        // keep displaying last known state — do NOT reset _s
         retryTimer = setTimeout(connect, 2000);
       };
     } catch {
