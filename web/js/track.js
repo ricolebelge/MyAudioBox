@@ -184,6 +184,13 @@ class Track {
       if (stepEl) this._setStep(parseInt(stepEl.dataset.step), painting);
     });
 
+    // Right-click on a step = force clear to OFF
+    grid.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const stepEl = getStep(e.target);
+      if (stepEl) this._setStep(parseInt(stepEl.dataset.step), false);
+    });
+
     document.addEventListener('mouseup', () => { painting = null; });
   }
 
@@ -247,13 +254,32 @@ class Track {
     try {
       Audio.init();
       const { url, buffer } = await Audio.loadFile(file);
-      this.sampleUrl  = url;
+      this.sampleUrl  = url;   // blob URL — immediate playback
       this.buffer     = buffer;
       this.sampleName = file.name;
       this._showSampleName(file.name);
+      // Upload to server in background so saved patterns can reload the file
+      this._uploadSample(file).then(serverUrl => {
+        if (serverUrl) this.sampleUrl = serverUrl;
+      });
     } catch (e) {
       console.error('Sample load failed:', e);
     }
+  }
+
+  async _uploadSample(file) {
+    try {
+      const res = await fetch(`/api/samples/${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: file,
+      });
+      if (res.ok) {
+        const d = await res.json();
+        return d.url || null;
+      }
+    } catch {}
+    return null;
   }
 
   async loadFromUrl(url, displayName = null) {

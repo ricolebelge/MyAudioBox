@@ -164,6 +164,19 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"ok": True})
             return
 
+        if path.startswith("/api/samples/"):
+            name = Path(path[len("/api/samples/"):]).name  # strip any path traversal
+            ext = Path(name).suffix.lower()
+            if not name or ext not in {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff'}:
+                self._send_json(400, {"error": "invalid filename"})
+                return
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            SAMPLES_DIR.mkdir(exist_ok=True)
+            (SAMPLES_DIR / name).write_bytes(body)
+            self._send_json(200, {"ok": True, "url": f"/samples/{name}"})
+            return
+
         self._send_json(404, {"error": "not found"})
 
     def do_DELETE(self):
