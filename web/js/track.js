@@ -1,3 +1,5 @@
+const SLOT_LABELS = ['A','B','C','D','E','F','G','H'];
+
 class Track {
   constructor({ index, name = `T${index + 1}` }) {
     this.index      = index;
@@ -14,6 +16,10 @@ class Track {
     this.pan    = 50;
     this.filter = 100;
     this.send   = 0;
+
+    // 8 slot memories per track (store step patterns)
+    this.slotData    = Array(8).fill(null);
+    this.activeSlot  = null;
 
     this.el = this._render();
     this._bindEvents();
@@ -39,8 +45,10 @@ class Track {
         </label>
       </div>
 
-      <!-- Row 2: steps toggle -->
+      <!-- Row 2: slots A–H · step toggle -->
       <div class="track-slots">
+        ${SLOT_LABELS.map((l, i) => `<button class="slot-btn" data-slot="${i}">${l}</button>`).join('')}
+        <span class="slot-sep"></span>
         <div class="steps-toggle">
           <button class="steps-btn ${this.stepMode===8?'active':''}" data-steps="8">8</button>
           <button class="steps-btn ${this.stepMode===16?'active':''}" data-steps="16">16</button>
@@ -132,6 +140,23 @@ class Track {
       if (file?.type.startsWith('audio/')) this._loadFile(file);
     });
 
+    // Slot buttons: left-click = store if empty / recall if filled
+    //               right-click = always store
+    this.el.querySelectorAll('.slot-btn').forEach(btn => {
+      const si = parseInt(btn.dataset.slot);
+      btn.addEventListener('click', () => {
+        if (this.slotData[si] === null) {
+          this._slotStore(si);
+        } else {
+          this._slotRecall(si);
+        }
+      });
+      btn.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        this._slotStore(si);
+      });
+    });
+
     this._bindGridDrag();
   }
 
@@ -157,6 +182,30 @@ class Track {
     });
 
     document.addEventListener('mouseup', () => { painting = null; });
+  }
+
+  // ── Slot memories ──────────────────────────────────────────────────────────
+  _slotStore(si) {
+    this.slotData[si] = this.steps.slice(0, this.stepMode);
+    this.activeSlot   = si;
+    this._refreshSlots();
+  }
+
+  _slotRecall(si) {
+    const data = this.slotData[si];
+    if (!data) return;
+    data.forEach((v, i) => this._setStep(i, v));
+    // clear steps beyond stored length
+    for (let i = data.length; i < this.stepMode; i++) this._setStep(i, false);
+    this.activeSlot = si;
+    this._refreshSlots();
+  }
+
+  _refreshSlots() {
+    this.el.querySelectorAll('.slot-btn').forEach((btn, i) => {
+      btn.classList.toggle('filled',  this.slotData[i] !== null && i !== this.activeSlot);
+      btn.classList.toggle('active',  i === this.activeSlot);
+    });
   }
 
   // ── Step logic ─────────────────────────────────────────────────────────────
@@ -279,6 +328,7 @@ class Track {
       pan:        this.pan,
       filter:     this.filter,
       send:       this.send,
+      slotData:   this.slotData,
     };
   }
 
@@ -297,6 +347,10 @@ class Track {
       this._applyExpression();
     }
     if (data.sampleUrl) this.loadFromUrl(data.sampleUrl);
+    if (Array.isArray(data.slotData)) {
+      this.slotData = data.slotData;
+      this._refreshSlots();
+    }
 
     const setK = (prefix, val) => Knob.setKnobValue(`${prefix}_${this.index}`, val);
     if (data.vol    !== undefined) { this.vol    = data.vol;    setK('VOL', data.vol);   }
