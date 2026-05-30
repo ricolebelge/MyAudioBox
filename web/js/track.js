@@ -7,6 +7,7 @@ class Track {
     this.steps      = Array(16).fill(false);
     this.stepMode   = 16;
     this.sampleUrl  = null;
+    this.sampleName = null;
     this.buffer     = null;
     this.expression = '';
     this.exprError  = false;
@@ -244,20 +245,23 @@ class Track {
     try {
       Audio.init();
       const { url, buffer } = await Audio.loadFile(file);
-      this.sampleUrl = url;
-      this.buffer    = buffer;
+      this.sampleUrl  = url;
+      this.buffer     = buffer;
+      this.sampleName = file.name;
       this._showSampleName(file.name);
     } catch (e) {
       console.error('Sample load failed:', e);
     }
   }
 
-  async loadFromUrl(url) {
+  async loadFromUrl(url, displayName = null) {
     try {
       Audio.init();
-      this.sampleUrl = url;
-      this.buffer    = await Audio.loadSample(url);
-      this._showSampleName(url.split('/').pop());
+      this.sampleUrl  = url;
+      this.buffer     = await Audio.loadSample(url);
+      const name      = displayName || url.split('/').pop();
+      this.sampleName = name;
+      this._showSampleName(name);
     } catch (e) {
       console.error('Sample load failed:', e);
     }
@@ -286,11 +290,13 @@ class Track {
     this._highlightStep(globalStep % this.stepMode);
   }
 
-  scheduleStep(globalStep, time) {
+  scheduleStep(globalStep, time, bufferOverride = null) {
     const localStep = globalStep % this.stepMode;
-    if (!this.steps[localStep] || !this.buffer) return;
+    if (!this.steps[localStep]) return;
+    const buf = bufferOverride || this.buffer;
+    if (!buf) return;
 
-    Audio.playStep(this.buffer, time, {
+    Audio.playStep(buf, time, {
       vol:        this.vol / 100,
       pitch:      Math.pow(2, (this.pitch - 50) / 50),
       pan:        (this.pan - 50) / 50,
@@ -323,6 +329,7 @@ class Track {
       stepMode:   this.stepMode,
       expression: this.expression,
       sampleUrl:  this.sampleUrl,
+      sampleName: this.sampleName,
       vol:        this.vol,
       pitch:      this.pitch,
       pan:        this.pan,
@@ -346,7 +353,7 @@ class Track {
       if (inp) inp.value = data.expression;
       this._applyExpression();
     }
-    if (data.sampleUrl) this.loadFromUrl(data.sampleUrl);
+    if (data.sampleUrl) this.loadFromUrl(data.sampleUrl, data.sampleName || null);
     if (Array.isArray(data.slotData)) {
       this.slotData = data.slotData;
       this._refreshSlots();

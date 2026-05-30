@@ -22,13 +22,21 @@ const ABSystem = (() => {
   function copyAtoB() {
     const a = getTracksA();
     const b = getTracksB();
-    a.forEach((t, i) => { if (b[i]) b[i].fromJSON(t.toJSON()); });
+    a.forEach((t, i) => {
+      if (!b[i]) return;
+      b[i].fromJSON(JSON.parse(JSON.stringify(t.toJSON())));
+      if (t.buffer) b[i].buffer = t.buffer;
+    });
   }
 
   function copyBtoA() {
     const a = getTracksA();
     const b = getTracksB();
-    b.forEach((t, i) => { if (a[i]) a[i].fromJSON(t.toJSON()); });
+    b.forEach((t, i) => {
+      if (!a[i]) return;
+      a[i].fromJSON(JSON.parse(JSON.stringify(t.toJSON())));
+      if (t.buffer) a[i].buffer = t.buffer;
+    });
   }
 
   function setCrossfader(v) {

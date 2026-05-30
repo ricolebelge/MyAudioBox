@@ -40,7 +40,7 @@ const App = (() => {
         if (blended !== null) {
           const prev = t.steps[stepIndex % t.stepMode];
           t.steps[stepIndex % t.stepMode] = blended;
-          t.scheduleStep(stepIndex, time);
+          t.scheduleStep(stepIndex, time, tracksB[ti]?.buffer || null);
           t.steps[stepIndex % t.stepMode] = prev;
         } else {
           t.scheduleStep(stepIndex, time);
@@ -135,6 +135,8 @@ const App = (() => {
       btn.textContent = '▶';
       btn.classList.remove('playing');
     } else {
+      Audio.init();
+      Audio.ctx?.resume();
       Sequencer.start();
       btn.textContent = '⏹';
       btn.classList.add('playing');
