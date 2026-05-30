@@ -367,6 +367,47 @@ class Track {
     if (data.send   !== undefined) { this.send   = data.send;   setK('SND', data.send);  }
   }
 
+  // ── Direct copy (used by ABSystem — no serialization, no async) ───────────
+  copyFrom(src) {
+    // Step mode + grid
+    this.stepMode = src.stepMode;
+    this.steps    = src.steps.slice();
+    this.el.querySelectorAll('.steps-btn').forEach(b =>
+      b.classList.toggle('active', parseInt(b.dataset.steps) === this.stepMode)
+    );
+    this._refreshGrid();
+
+    // Expression
+    this.expression = src.expression;
+    const inp = this.el.querySelector('[data-role="expr"]');
+    if (inp) inp.value = src.expression;
+    if (src.expression.trim()) this._applyExpression();
+
+    // Sample — copy buffer reference immediately (no re-decode)
+    this.sampleUrl  = src.sampleUrl;
+    this.sampleName = src.sampleName;
+    this.buffer     = src.buffer;
+    this._showSampleName(src.sampleName || '—');
+
+    // Knobs
+    this.vol    = src.vol;
+    this.pitch  = src.pitch;
+    this.pan    = src.pan;
+    this.filter = src.filter;
+    this.send   = src.send;
+    const setK = (p, v) => Knob.setKnobValue(`${p}_${this.index}`, v);
+    setK('VOL', src.vol);
+    setK('PCH', src.pitch);
+    setK('PAN', src.pan);
+    setK('FLT', src.filter);
+    setK('SND', src.send);
+
+    // Slot memories (deep clone — each stored pattern is an independent array)
+    this.slotData   = src.slotData.map(s => s ? s.slice() : null);
+    this.activeSlot = null;
+    this._refreshSlots();
+  }
+
   destroy() {
     if (this._offVarChange) this._offVarChange();
     this.el.remove();
