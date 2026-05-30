@@ -95,9 +95,13 @@ const App = (() => {
 
     // Patterns bar
     document.getElementById('btn-save').addEventListener('click', savePattern);
-    document.getElementById('btn-load').addEventListener('click', () => {
+    document.getElementById('btn-load-a').addEventListener('click', () => {
       const name = selectedPattern || document.getElementById('pattern-name').value.trim();
-      if (name) loadPattern(name);
+      if (name) loadPatternToSet(name, 'A');
+    });
+    document.getElementById('btn-load-b').addEventListener('click', () => {
+      const name = selectedPattern || document.getElementById('pattern-name').value.trim();
+      if (name) loadPatternToSet(name, 'B');
     });
     document.getElementById('btn-delete').addEventListener('click', deletePattern);
 
@@ -173,7 +177,7 @@ const App = (() => {
         list.querySelectorAll('.pattern-chip').forEach(c => c.classList.remove('selected'));
         chip.classList.add('selected');
       });
-      chip.addEventListener('dblclick', () => loadPattern(name));
+      chip.addEventListener('dblclick', () => loadPatternToSet(name, 'A'));
       list.appendChild(chip);
     });
   }
@@ -208,26 +212,27 @@ const App = (() => {
     await refreshPatterns();
   }
 
-  async function loadPattern(name) {
+  async function _fetchPattern(name) {
     let data = null;
     try {
       const res = await fetch(`/api/patterns/${encodeURIComponent(name)}`);
       if (res.ok) data = await res.json();
     } catch {}
-    if (!data) data = lsGetAll()[name];
+    return data || lsGetAll()[name] || null;
+  }
+
+  async function loadPatternToSet(name, set) {
+    const data = await _fetchPattern(name);
     if (!data) return;
 
-    if (data.bpm)    Knob.setKnobValue('BPM',    data.bpm);
-    if (data.swing)  Knob.setKnobValue('SWING',  data.swing);
-    if (data.reverb) Knob.setKnobValue('REVERB', data.reverb);
-    if (data.delay)  Knob.setKnobValue('DELAY',  data.delay);
-    if (data.master) Knob.setKnobValue('MASTER', data.master);
+    // Primary tracks stored in tracksA; fall back to legacy 'tracks' key
+    const tracks = data.tracksA || data.tracks || [];
 
-    // Support old format (single 'tracks' key) and new (tracksA / tracksB)
-    const ta = data.tracksA || data.tracks || [];
-    const tb = data.tracksB || [];
-    ta.forEach((d, i) => { if (tracksA[i]) tracksA[i].fromJSON(d); });
-    tb.forEach((d, i) => { if (tracksB[i]) tracksB[i].fromJSON(d); });
+    if (set === 'A') {
+      tracks.forEach((d, i) => { if (tracksA[i]) tracksA[i].fromJSON(d); });
+    } else {
+      tracks.forEach((d, i) => { if (tracksB[i]) tracksB[i].fromJSON(d); });
+    }
 
     selectedPattern = name;
     document.getElementById('pattern-name').value = name;

@@ -97,9 +97,9 @@ html, body {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--font);
-  font-size: 12px;
-  width: 30px;
-  height: 30px;
+  font-size: 16px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius);
   cursor: pointer;
   display: flex;
@@ -326,16 +326,17 @@ html, body {
 
 .drop-btn {
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   color: #888;
   border: 1px solid #2a2a2a;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 2px;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.1s;
   display: flex;
   align-items: center;
+  gap: 2px;
 }
 .drop-btn:hover {
   border-color: #F0B90B;
@@ -510,6 +511,8 @@ html, body {
   transition: all 0.1s;
 }
 .btn-pattern:hover { border-color: var(--yellow); color: var(--yellow); }
+.btn-send { color: var(--yellow); border-color: var(--yellow-dim); }
+.btn-send:hover { background: var(--yellow); color: #000; }
 .btn-del:hover { border-color: #ff4400; color: #ff4400; }
 
 /* Crowd live feed */

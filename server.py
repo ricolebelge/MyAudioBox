@@ -202,6 +202,9 @@ async def main():
     global ws_loop
     ws_loop = asyncio.get_running_loop()
 
+    PATTERNS_DIR.mkdir(exist_ok=True)
+    SAMPLES_DIR.mkdir(exist_ok=True)
+
     # Watchdog
     observer = Observer()
     handler = ReloadHandler()

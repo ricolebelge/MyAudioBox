@@ -40,9 +40,9 @@ class Track {
         <span class="track-name">${this.name}</span>
         <input class="track-expr" data-role="expr" placeholder="euclidean(5,16)" spellcheck="false" />
         <span class="sample-name" data-role="sample-name">—</span>
-        <label class="drop-btn" data-role="drop" title="Charger un fichier local">
+        <label class="drop-btn" data-role="drop" title="Charger un fichier audio local">
           <input type="file" accept=".wav,.mp3,.ogg,.flac,.aif,.aiff" style="display:none" data-role="file-input">
-          &#x25B2;
+          &#x2B06; FILE
         </label>
       </div>
 
