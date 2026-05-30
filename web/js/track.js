@@ -106,7 +106,9 @@ class Track {
   _refreshGrid() {
     const grid = this.el.querySelector('[data-role="grid"]');
     grid.innerHTML = this._renderGrid();
-    this._bindGridDrag();
+    // _bindGridDrag() is NOT called here — it's bound once at construction
+    // via _bindEvents() and works by event delegation on the stable grid element.
+    // Re-binding on every refresh would stack duplicate handlers and break toggling.
   }
 
   // ── Events ─────────────────────────────────────────────────────────────────
